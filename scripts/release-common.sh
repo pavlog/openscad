@@ -333,6 +333,7 @@ case $OS in
         FONTDIR=OpenSCAD.app/Contents/Resources/fonts
         TRANSLATIONDIR=OpenSCAD.app/Contents/Resources/locale
         COLORSCHEMESDIR=OpenSCAD.app/Contents/Resources/color-schemes
+        PLUGINSDIR=OpenSCAD.app/Contents/Resources/plugins
     ;;
     UNIX_CROSS_WIN)
         cd $OPENSCADDIR
@@ -341,6 +342,7 @@ case $OS in
         FONTDIR=$DEPLOYDIR/openscad-$VERSION/fonts/
         TRANSLATIONDIR=$DEPLOYDIR/openscad-$VERSION/locale/
         COLORSCHEMESDIR=$DEPLOYDIR/openscad-$VERSION/color-schemes/
+        PLUGINSDIR=$DEPLOYDIR/openscad-$VERSION/plugins/
         rm -rf $DEPLOYDIR/openscad-$VERSION
         mkdir $DEPLOYDIR/openscad-$VERSION
     ;;
@@ -350,6 +352,7 @@ case $OS in
         FONTDIR=openscad-$VERSION/fonts/
         TRANSLATIONDIR=openscad-$VERSION/locale/
         COLORSCHEMESDIR=openscad-$VERSION/color-schemes/
+        PLUGINSDIR=openscad-$VERSION/plugins/
         rm -rf openscad-$VERSION
         mkdir openscad-$VERSION
     ;;
@@ -395,6 +398,11 @@ if [ -n $LIBRARYDIR ]; then
     cd $LIBRARYDIR/.. && tar xf $OPENSCADDIR/libraries.tar && cd $OPENSCADDIR
     rm -f libraries.tar
     chmod -R u=rwx,go=r,+X $LIBRARYDIR/*
+fi
+if [ -n $PLUGINSDIR ]; then
+  echo $PLUGINSDIR
+  mkdir -p $PLUGINSDIR
+  cp -a plugins/* $PLUGINSDIR
 fi
 if [ -n $TRANSLATIONDIR ]; then
   echo $TRANSLATIONDIR

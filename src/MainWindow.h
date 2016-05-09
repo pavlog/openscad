@@ -16,6 +16,27 @@
 #include <QMutex>
 #include <QTime>
 #include <QIODevice>
+#include <QProcess>
+
+class MainWindow;
+
+struct Plugin: public QObject
+{
+	Q_OBJECT
+	
+public:
+	Plugin(MainWindow *parent = 0)
+	:m_parent(parent)
+	{
+	}
+public slots:
+	void readyReadStandardOutput();
+public:
+	MainWindow *m_parent;
+	QString m_commandLine;
+	std::shared_ptr<QProcess> m_pluginProcess;
+};
+
 
 class MainWindow : public QMainWindow, public Ui::MainWindow
 {
@@ -45,6 +66,7 @@ public:
 	AbstractNode *absolute_root_node; // Result of tree evaluation
 	AbstractNode *root_node;          // Root if the root modifier (!) is used
 	Tree tree;
+	std::vector<std::shared_ptr<Plugin>> m_plugins;
 
 #ifdef ENABLE_CGAL
 	shared_ptr<const class Geometry> root_geom;
@@ -149,6 +171,7 @@ private slots:
 	void hideEditor();
 	void hideConsole();
 	void showConsole();
+	void windowLoaded();
 
 private slots:
 	void selectFindType(int);

@@ -91,6 +91,7 @@
 #include <QDockWidget>
 #include <QClipboard>
 #include <QDesktopWidget>
+#include <QDirIterator>
 
 #if (QT_VERSION < QT_VERSION_CHECK(5, 1, 0))
 // Set dummy for Qt versions that do not have QSaveFile
@@ -572,6 +573,8 @@ MainWindow::MainWindow(const QString &filename)
 
 	setAcceptDrops(true);
 	clearCurrentOutput();
+	//
+	QTimer::singleShot(0, this, SLOT(windowLoaded()));
 }
 
 void MainWindow::initActionIcon(QAction *action, const char *darkResource, const char *lightResource)
@@ -2701,5 +2704,151 @@ void MainWindow::openCSGSettingsChanged()
 void MainWindow::setContentsChanged()
 {
 	this->contentschanged = true;
+}
+
+
+void MainWindow::windowLoaded()
+{
+	setCurrentOutput();
+
+	// initialize plugins
+	QString librarydir;
+	QDir libdir(QApplication::instance()->applicationDirPath());
+#ifdef Q_OS_MAC
+	libdir.cd("../Resources");
+	if (!libdir.exists("plugins")) libdir.cd("../../..");
+#elif defined(Q_OS_UNIX)
+	if (libdir.cd("../share/openscad/plugins"))
+	{
+		librarydir = libdir.path();
+	}
+	else if (libdir.cd("../../share/openscad/plugins"))
+	{
+		librarydir = libdir.path();
+	}
+	else if (libdir.cd("../../plugins"))
+	{
+			librarydir = libdir.path();
+	}
+	else
+#endif
+		if (libdir.cd("plugins"))
+		{
+			librarydir = libdir.path();
+		}
+	//
+	PRINTB("Plugins folder: [%s]",librarydir.toStdString().c_str());
+	QDirIterator it(librarydir, QStringList() << "*.plugin", QDir::Files, QDirIterator::Subdirectories);
+	while (it.hasNext())
+	{
+		QString pluginFile = it.next();
+		PRINTB("Plugin file found [%s]",pluginFile.toStdString().c_str());
+		//
+		std::shared_ptr<Plugin> plugin(new Plugin(this));
+		QSettings settings(pluginFile, QSettings::IniFormat);
+		QString program = settings.value("Plugin/Executable").toString();
+		//PRINT(program.toStdString().c_str());
+		QFileInfo pdir(pluginFile);
+		QStringList arguments;
+		QString argument = settings.value("Plugin/Arguments").toString();
+		arguments.push_back(argument);
+		plugin->m_pluginProcess = std::shared_ptr<QProcess>(new QProcess(this));
+		connect(plugin->m_pluginProcess.get(), SIGNAL(readyReadStandardOutput()), plugin.get(), SLOT(readyReadStandardOutput()));
+		plugin->m_pluginProcess->setWorkingDirectory(pdir.absoluteDir().absolutePath());
+		plugin->m_pluginProcess->start(program, arguments);
+		plugin->m_pluginProcess->waitForStarted();
+		PRINTB("Plugin program started [%s] wd [%s] pid [%llu] status[%d]",program.toStdString().c_str() % pdir.absoluteDir().absolutePath().toStdString().c_str() % plugin->m_pluginProcess->pid() % ((int)settings.status()));
+		//PRINTB("Plugin stderr [%s]",plugin->m_pluginProcess->errorString().toStdString().c_str());
+		m_plugins.push_back(plugin);
+	}
+	clearCurrentOutput();
+}
+
+void Plugin::readyReadStandardOutput()
+{
+	//m_parent->setCurrentOutput();
+	QString strData = m_pluginProcess->readAllStandardOutput();
+	m_commandLine+=strData;
+	//PRINTB("Plugin [%s]",m_commandLine.toStdString().c_str());
+	if( m_commandLine[m_commandLine.size()-1]!=QChar('\n'))
+	{
+		return;
+	}
+	// process only if \n is last char
+	QStringList pieces =  strData.split( "\n" );
+	foreach(QString cmd,pieces)
+	{
+		// if command starts from # - just print in log
+		if( cmd[0]=='#' )
+		{
+			//m_parent->consoleOutput(cmd);
+			PRINTB("PluginLog: [%s]",cmd.toStdString().c_str());
+		}
+		else if( cmd.startsWith("AddMenuItem") )
+		{
+			//AddMenuItem,idMenu1(Menu1Title)\\idMenu2(Menu2Title)\\actionid(ActionTitle),after#editActionUnindent,shortcut
+			//AddMenuItem,menu_Edit(&Edit)\\editActionReIndent(Re-Indent),after#editActionUnindent,Ctrl+Alt+I\n
+			//m_parent->consoleOutput(cmd);
+			PRINTB("AddMenuItem: [%s]",cmd.toStdString().c_str());
+			QStringList params = cmd.split( "," );
+
+			
+			
+			//m_parent->menuBar()->get
+			//QMenuBar *mb = new QMenuBar();
+			//QMenu *updateMenu = mb->addMenu("MMMM");
+			//this->updateAction = new QAction("Check for Update..", this);
+		// Add to application menu
+		//this->updateAction->setMenuRole(QAction::ApplicationSpecificRole);
+		//this->updateAction->setEnabled(true);
+		//this->connect(this->updateAction, SIGNAL(triggered()), this, SLOT(checkForUpdates()));
+
+		//this->updateMenu->addAction(this->updateAction);
+//QAction *act = m_parent->menuBar()->addMenu("Edit2")->addMenu("ffffff")->addAction("someAction");
+//QObject::connect(act,SIGNAL(triggered()),
+//                 someObj,SLOT(actionReaction()));
+        //QAction* pAction = new QAction(m_parent);
+        //pAction->setObjectName("tTTT");
+		//pAction->setText("RRRRR");
+		//m_parent->menu_Edit->addAction(pAction);
+		//	m_parent->menu_Edit->addAction(pAction);
+		//QAction *act = m_parent->menuBar()->addMenu("SomeMenu")->addMenu("someSubmenu")->addAction("someAction");
+		//m_parent->menuBar()->up`
+QAction *action = new QAction("Edit",m_parent);
+QAction *dummyaction = new QAction("Testing",m_parent);
+QMenu *menu = new QMenu();
+menu->addAction(dummyaction);
+
+//bool val= connect(menu, SIGNAL( aboutToShow()), this, SLOT( Move()));
+//val= connect(menu, SIGNAL( aboutToHide()), this, SLOT(Move()));
+
+action->setMenu(menu);
+QList<QMenu*> lst;
+lst = m_parent->menuBar()->findChildren<QMenu*>();
+foreach (QMenu* m, lst)
+{
+		//PRINTB("Menu [%s]",m->objectName().toUtf8().constData());
+	if( m->objectName()=="menu_Edit" )
+	{
+		m->addAction("eeeee");
+	}
+    //foreach (QAction* a, m->actions())
+    //{
+     //   actions->addAction(a);
+    //}
+}
+
+
+//if( m_parent->menubar )
+{
+//m_parent->menubar->addAction(action);
+//m_parent->menubar->addMenu("DDDDD");
+	//m_parent->menuBar()->addMenu("Edit2")->addAction("ddd");
+		}
+		}
+	}
+	m_commandLine.clear();
+	//PRINTB("Plugin [%s]",QString(m_pluginProcess->readAllStandardOutput()).toUtf8().constData());
+	//m_parent->clearCurrentOutput();
 }
 

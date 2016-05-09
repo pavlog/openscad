@@ -553,6 +553,10 @@ libraries.path = "$$PREFIX/share/$${FULLNAME}/libraries/"
 libraries.files = libraries/*
 INSTALLS += libraries
 
+plugins.path = "$$PREFIX/share/$${FULLNAME}/plugins/"
+plugins.files = plugins
+INSTALLS += plugins
+
 fonts.path = "$$PREFIX/share/$${FULLNAME}/fonts/"
 fonts.files = fonts/*
 INSTALLS += fonts
