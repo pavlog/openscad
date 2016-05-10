@@ -436,6 +436,7 @@ SOURCES += src/version_check.cc \
            src/launchingscreen.cc \
            src/legacyeditor.cc \
            src/LibraryInfoDialog.cc
+           src/plugins.cc
 
 # ClipperLib
 SOURCES += src/polyclipping/clipper.cpp
